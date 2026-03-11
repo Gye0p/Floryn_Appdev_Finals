@@ -1,0 +1,231 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+    View,
+    Text,
+    TextInput,
+    FlatList,
+    TouchableOpacity,
+    StyleSheet,
+    RefreshControl,
+} from 'react-native';
+import { getCustomerFlowers, getFlowerCategories } from '../../app/api/customerApi';
+import { ROUTES } from '../../utils';
+import FlowerCard from '../../components/FlowerCard';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ErrorRetry from '../../components/ErrorRetry';
+import COLORS from '../../theme/colors';
+import EmptyState from '../../components/EmptyState';
+
+const FlowerCatalogScreen = ({ navigation }) => {
+    const [flowers, setFlowers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [categories, setCategories] = useState(['All']);
+
+    const refresh = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [flowersData, cats] = await Promise.all([
+                getCustomerFlowers(),
+                getFlowerCategories(),
+            ]);
+            setFlowers(flowersData);
+            setCategories(['All', ...cats]);
+        } catch (err) {
+            setError(err.message || 'Failed to load flowers');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+
+    const filteredFlowers = useMemo(() => {
+        let result = flowers;
+
+        if (selectedCategory !== 'All') {
+            result = result.filter((f) => f.category === selectedCategory);
+        }
+
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(
+                (f) =>
+                    f.name.toLowerCase().includes(query) ||
+                    f.category.toLowerCase().includes(query) ||
+                    f.supplier?.toLowerCase().includes(query),
+            );
+        }
+
+        return result;
+    }, [flowers, selectedCategory, searchQuery]);
+
+    if (loading && flowers.length === 0) {
+        return <LoadingSpinner message="Loading flowers..." />;
+    }
+
+    if (error && flowers.length === 0) {
+        return <ErrorRetry message={error} onRetry={refresh} />;
+    }
+
+    const handleFlowerPress = (flower) => {
+        navigation.navigate(ROUTES.FLOWER_DETAIL, { flower });
+    };
+
+    return (
+        <View style={styles.container}>
+            {}
+            <View style={styles.searchContainer}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search flowers..."
+                    placeholderTextColor="#9ca3af"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <Text style={styles.clearButton}>✕</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {}
+            <FlatList
+                horizontal
+                data={categories}
+                keyExtractor={(item) => item}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryContainer}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={[
+                            styles.categoryChip,
+                            selectedCategory === item && styles.categoryChipActive,
+                        ]}
+                        onPress={() => setSelectedCategory(item)}>
+                        <Text
+                            style={[
+                                styles.categoryChipText,
+                                selectedCategory === item && styles.categoryChipTextActive,
+                            ]}>
+                            {item}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+            />
+
+            {}
+            <FlatList
+                data={filteredFlowers}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => (
+                    <FlowerCard flower={item} onPress={handleFlowerPress} />
+                )}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={refresh}
+                        colors={[COLORS.blue]}
+                        tintColor={COLORS.blue}
+                    />
+                }
+                ListEmptyComponent={
+                    <EmptyState
+                        emoji="🌷"
+                        message={
+                            searchQuery || selectedCategory !== 'All'
+                                ? 'No flowers match your filters'
+                                : 'No flowers available right now'
+                        }
+                    />
+                }
+                ListHeaderComponent={
+                    <Text style={styles.resultCount}>
+                        {filteredFlowers.length} flower
+                        {filteredFlowers.length !== 1 ? 's' : ''} found
+                    </Text>
+                }
+            />
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#f9fafb',
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        marginHorizontal: 16,
+        marginTop: 12,
+        marginBottom: 8,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    searchIcon: {
+        fontSize: 16,
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#1f2937',
+    },
+    clearButton: {
+        fontSize: 16,
+        color: '#9ca3af',
+        paddingLeft: 8,
+    },
+    categoryContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        gap: 8,
+    },
+    categoryChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        marginRight: 8,
+    },
+    categoryChipActive: {
+        backgroundColor: COLORS.blue,
+        borderColor: COLORS.blue,
+    },
+    categoryChipText: {
+        fontSize: 13,
+        color: '#6b7280',
+        fontWeight: '600',
+    },
+    categoryChipTextActive: {
+        color: '#ffffff',
+    },
+    listContent: {
+        paddingBottom: 24,
+    },
+    resultCount: {
+        fontSize: 13,
+        color: '#9ca3af',
+        fontWeight: '500',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+    },
+});
+
+export default FlowerCatalogScreen;
