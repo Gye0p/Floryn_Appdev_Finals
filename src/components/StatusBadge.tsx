@@ -12,7 +12,7 @@ const ALL_COLORS = {
     Cancelled: '#ef4444',
 };
 
-const StatusBadge = ({ status, style }) => {
+const StatusBadge = ({ status, style }: { status: string; style?: any }) => {
     const color = ALL_COLORS[status] || '#6b7280';
 
     return (
