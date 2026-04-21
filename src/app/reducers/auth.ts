@@ -5,6 +5,7 @@ import {
     USER_LOGIN_REQUEST,
     USER_LOGIN_RESET,
 } from '../actions';
+import { logInteraction } from '../../utils/logger';
 
 const INITIAL_STATE = {
     data: null,
@@ -13,9 +14,9 @@ const INITIAL_STATE = {
 };
 
 export default function reducer(state = INITIAL_STATE, action) {
-    console.log(action.type);
     switch (action.type) {
         case USER_LOGIN_REQUEST:
+            logInteraction('Auth: login requested');
             return {
                 ...state,
                 data: null,
@@ -24,6 +25,9 @@ export default function reducer(state = INITIAL_STATE, action) {
             };
 
         case USER_LOGIN_COMPLETED:
+            logInteraction('Auth: login successful', {
+                username: action.payload?.user?.username || action.payload?.username || 'unknown',
+            });
             return {
                 ...state,
                 data: action.payload,
@@ -32,6 +36,9 @@ export default function reducer(state = INITIAL_STATE, action) {
             };
 
         case USER_LOGIN_ERROR:
+            logInteraction('Auth: login failed', {
+                reason: action.payload || 'Unknown error',
+            });
             return {
                 data: null,
                 isLoading: false,
@@ -39,6 +46,7 @@ export default function reducer(state = INITIAL_STATE, action) {
             };
 
         case USER_LOGIN_RESET:
+            logInteraction('Auth: state reset / logout');
             return INITIAL_STATE;
 
         default:
