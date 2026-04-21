@@ -14,6 +14,7 @@ import ErrorRetry from '../../components/ErrorRetry';
 import COLORS from '../../theme/colors';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { logError, logInteraction } from '../../utils/logger';
 
 const RESERVATION_STATUSES = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
@@ -24,17 +25,25 @@ const ReservationsScreen = () => {
     const [selectedStatus, setSelectedStatus] = useState('All');
 
     const refresh = useCallback(async () => {
+        logInteraction('Reservations: refresh started');
         setLoading(true);
         setError(null);
         try {
             const data = await getMyReservations();
             setReservations(data);
+            logInteraction('Reservations: refresh success', { count: data.length });
         } catch (err) {
             setError(err.message || 'Failed to load reservations');
+            logError('Reservations: refresh failed', err);
         } finally {
             setLoading(false);
         }
     }, []);
+
+    const handleStatusSelect = (status) => {
+        logInteraction('Reservations: status filter selected', { status });
+        setSelectedStatus(status);
+    };
 
     useEffect(() => {
         refresh();
@@ -109,7 +118,7 @@ const ReservationsScreen = () => {
                             styles.filterChip,
                             selectedStatus === item && styles.filterChipActive,
                         ]}
-                        onPress={() => setSelectedStatus(item)}>
+                        onPress={() => handleStatusSelect(item)}>
                         <Text
                             style={[
                                 styles.filterChipText,

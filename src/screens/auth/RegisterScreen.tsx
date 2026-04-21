@@ -15,9 +15,10 @@ import { useNavigation } from '@react-navigation/native';
 import COLORS from '../../theme/colors';
 import { IMG } from '../../utils';
 import { register } from '../../app/api/authApi';
+import { logError, logInteraction } from '../../utils/logger';
 
 const RegisterScreen = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
 
     const [form, setForm] = useState({
         name:     '',
@@ -43,10 +44,15 @@ const RegisterScreen = () => {
     const handleRegister = async () => {
         const { name, email, phone, username, password } = form;
         if (!name.trim() || !email.trim() || !username.trim() || !password.trim()) {
+            logInteraction('Register screen: blocked missing required fields');
             setError('Please fill in all required fields.');
             return;
         }
 
+        logInteraction('Register screen: submit', {
+            username: username.trim(),
+            hasPhone: phone.trim().length > 3,
+        });
         setLoading(true);
         setError(null);
 
@@ -61,12 +67,14 @@ const RegisterScreen = () => {
                 address:   form.address.trim(),
             });
             setSuccess(true);
+            logInteraction('Register screen: success', { username: username.trim() });
         } catch (err) {
             const msg =
                 err?.response?.data?.error ??
                 err?.response?.data?.message ??
                 'Registration failed. Please try again.';
             setError(msg);
+            logError('Register screen: failed', err);
         } finally {
             setLoading(false);
         }
@@ -96,7 +104,10 @@ const RegisterScreen = () => {
                         </Text>
                         <TouchableOpacity
                             style={styles.backButton}
-                            onPress={() => navigation.goBack()}>
+                            onPress={() => {
+                                logInteraction('Register screen: back to login');
+                                navigation.goBack();
+                            }}>
                             <Text style={styles.backButtonText}>Back to Login</Text>
                         </TouchableOpacity>
                     </View>
@@ -155,7 +166,10 @@ const RegisterScreen = () => {
                 {!success && (
                     <View style={styles.loginRow}>
                         <Text style={styles.loginHint}>Already have an account? </Text>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <TouchableOpacity onPress={() => {
+                            logInteraction('Register screen: navigate to login');
+                            navigation.goBack();
+                        }}>
                             <Text style={styles.loginLink}>Sign In</Text>
                         </TouchableOpacity>
                     </View>

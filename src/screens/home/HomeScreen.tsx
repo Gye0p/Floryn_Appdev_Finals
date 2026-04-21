@@ -14,15 +14,17 @@ import { ROUTES } from '../../utils';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorRetry from '../../components/ErrorRetry';
 import COLORS from '../../theme/colors';
+import { logError, logInteraction } from '../../utils/logger';
 
 const HomeScreen = () => {
-    const navigation = useNavigation();
-    const { data: authData } = useSelector(state => state.auth);
+    const navigation = useNavigation<any>();
+    const { data: authData } = useSelector((state: any) => state.auth);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const refresh = useCallback(async () => {
+        logInteraction('Home screen: refresh started');
         setLoading(true);
         setError(null);
         try {
@@ -30,13 +32,18 @@ const HomeScreen = () => {
                 getCustomerFlowers(),
                 getMyReservations(),
             ]);
-            setStats({
+            const nextStats = {
                 totalFlowers: flowers.length,
                 totalReservations: reservations.length,
                 onSale: flowers.filter(f => f.discountPrice != null).length,
+            };
+            setStats({
+                ...nextStats,
             });
+            logInteraction('Home screen: refresh success', nextStats);
         } catch (err) {
             setError(err.message || 'Failed to load data');
+            logError('Home screen: refresh failed', err);
         } finally {
             setLoading(false);
         }
@@ -106,7 +113,10 @@ const HomeScreen = () => {
             <View style={styles.actionsGrid}>
                 <TouchableOpacity
                     style={[styles.actionCard, { backgroundColor: COLORS.mintLight }]}
-                    onPress={() => navigation.navigate(ROUTES.FLOWERS)}
+                    onPress={() => {
+                        logInteraction('Home screen: tap Browse Flowers');
+                        navigation.navigate(ROUTES.FLOWERS);
+                    }}
                     activeOpacity={0.8}>
                     <Text style={styles.actionIcon}>🌸</Text>
                     <Text style={styles.actionTitle}>Browse Flowers</Text>
@@ -115,7 +125,10 @@ const HomeScreen = () => {
 
                 <TouchableOpacity
                     style={[styles.actionCard, { backgroundColor: '#f0fdf4' }]}
-                    onPress={() => navigation.navigate(ROUTES.RESERVATIONS)}
+                    onPress={() => {
+                        logInteraction('Home screen: tap My Reservations');
+                        navigation.navigate(ROUTES.RESERVATIONS);
+                    }}
                     activeOpacity={0.8}>
                     <Text style={styles.actionIcon}>📋</Text>
                     <Text style={styles.actionTitle}>My Reservations</Text>
@@ -124,7 +137,10 @@ const HomeScreen = () => {
 
                 <TouchableOpacity
                     style={[styles.actionCard, { backgroundColor: '#eff6ff' }]}
-                    onPress={() => navigation.navigate(ROUTES.PROFILE)}
+                    onPress={() => {
+                        logInteraction('Home screen: tap My Profile');
+                        navigation.navigate(ROUTES.PROFILE);
+                    }}
                     activeOpacity={0.8}>
                     <Text style={styles.actionIcon}>👤</Text>
                     <Text style={styles.actionTitle}>My Profile</Text>
@@ -136,7 +152,10 @@ const HomeScreen = () => {
             {onSale > 0 && (
                 <TouchableOpacity
                     style={styles.alertBanner}
-                    onPress={() => navigation.navigate(ROUTES.FLOWERS)}
+                    onPress={() => {
+                        logInteraction('Home screen: tap Sale Alert');
+                        navigation.navigate(ROUTES.FLOWERS);
+                    }}
                     activeOpacity={0.85}>
                     <Text style={styles.alertIcon}>🏷️</Text>
                     <View style={styles.alertTextContainer}>

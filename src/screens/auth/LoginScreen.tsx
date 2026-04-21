@@ -16,11 +16,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { userLogin, resetLogin } from '../../app/reducers/auth';
 import COLORS from '../../theme/colors';
 import { IMG, ROUTES } from '../../utils';
+import { logInteraction } from '../../utils/logger';
 
 const LoginScreen = () => {
-    const { isLoading, isError } = useSelector(state => state.auth);
+    const { isLoading, isError } = useSelector((state: any) => state.auth);
     const dispatch = useDispatch();
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
@@ -34,7 +35,14 @@ const LoginScreen = () => {
     };
 
     const handleLogin = () => {
-        if (!username.trim() || !password.trim()) { return; }
+        if (!username.trim() || !password.trim()) {
+            logInteraction('Login screen: blocked empty credentials');
+            return;
+        }
+
+        logInteraction('Login screen: submit', {
+            username: username.trim(),
+        });
         dispatch(userLogin({ username: username.trim(), password }));
     };
 
@@ -101,7 +109,10 @@ const LoginScreen = () => {
                 {}
                 <View style={styles.registerRow}>
                     <Text style={styles.registerHint}>Don&apos;t have an account? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate(ROUTES.REGISTER)}>
+                    <TouchableOpacity onPress={() => {
+                        logInteraction('Login screen: navigate to register');
+                        navigation.navigate(ROUTES.REGISTER);
+                    }}>
                         <Text style={styles.registerLink}>Register</Text>
                     </TouchableOpacity>
                 </View>

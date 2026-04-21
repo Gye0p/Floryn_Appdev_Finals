@@ -15,6 +15,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorRetry from '../../components/ErrorRetry';
 import COLORS from '../../theme/colors';
 import EmptyState from '../../components/EmptyState';
+import { logError, logInteraction } from '../../utils/logger';
 
 const FlowerCatalogScreen = ({ navigation }) => {
     const [flowers, setFlowers] = useState([]);
@@ -25,6 +26,7 @@ const FlowerCatalogScreen = ({ navigation }) => {
     const [categories, setCategories] = useState(['All']);
 
     const refresh = useCallback(async () => {
+        logInteraction('Flower catalog: refresh started');
         setLoading(true);
         setError(null);
         try {
@@ -34,8 +36,13 @@ const FlowerCatalogScreen = ({ navigation }) => {
             ]);
             setFlowers(flowersData);
             setCategories(['All', ...cats]);
+            logInteraction('Flower catalog: refresh success', {
+                flowers: flowersData.length,
+                categories: cats.length,
+            });
         } catch (err) {
             setError(err.message || 'Failed to load flowers');
+            logError('Flower catalog: refresh failed', err);
         } finally {
             setLoading(false);
         }
@@ -74,7 +81,23 @@ const FlowerCatalogScreen = ({ navigation }) => {
     }
 
     const handleFlowerPress = (flower) => {
+        logInteraction('Flower catalog: open detail', {
+            flowerId: flower?.id,
+            name: flower?.name,
+        });
         navigation.navigate(ROUTES.FLOWER_DETAIL, { flower });
+    };
+
+    const handleSearchChange = (text) => {
+        if (text.length === 0 || text.length >= 3) {
+            logInteraction('Flower catalog: search changed', { query: text });
+        }
+        setSearchQuery(text);
+    };
+
+    const handleCategorySelect = (category) => {
+        logInteraction('Flower catalog: category selected', { category });
+        setSelectedCategory(category);
     };
 
     return (
@@ -87,10 +110,13 @@ const FlowerCatalogScreen = ({ navigation }) => {
                     placeholder="Search flowers..."
                     placeholderTextColor="#9ca3af"
                     value={searchQuery}
-                    onChangeText={setSearchQuery}
+                    onChangeText={handleSearchChange}
                 />
                 {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <TouchableOpacity onPress={() => {
+                        logInteraction('Flower catalog: clear search');
+                        setSearchQuery('');
+                    }}>
                         <Text style={styles.clearButton}>✕</Text>
                     </TouchableOpacity>
                 )}
@@ -109,7 +135,7 @@ const FlowerCatalogScreen = ({ navigation }) => {
                             styles.categoryChip,
                             selectedCategory === item && styles.categoryChipActive,
                         ]}
-                        onPress={() => setSelectedCategory(item)}>
+                        onPress={() => handleCategorySelect(item)}>
                         <Text
                             style={[
                                 styles.categoryChipText,

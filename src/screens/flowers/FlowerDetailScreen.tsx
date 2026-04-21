@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import StatusBadge from '../../components/StatusBadge';
 import PriceBadge from '../../components/PriceBadge';
 import { formatCurrency } from '../../utils/formatCurrency';
 import COLORS from '../../theme/colors';
+import { logInteraction } from '../../utils/logger';
 
 const isLowStock = (flower) => flower.stockQuantity > 0 && flower.stockQuantity < 5;
 
 const FlowerDetailScreen = ({ route }) => {
     const { flower } = route.params;
     const lowStock = isLowStock(flower);
+
+    useEffect(() => {
+        logInteraction('Flower detail: viewed', {
+            flowerId: flower?.id,
+            name: flower?.name,
+        });
+    }, [flower]);
 
     return (
         <ScrollView style={styles.container}>

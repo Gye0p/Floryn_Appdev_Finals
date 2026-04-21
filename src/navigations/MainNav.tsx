@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet, Text } from 'react-native';
 import { ROUTES } from '../utils';
+import { logInteraction } from '../utils/logger';
 
 import HomeScreen from '../screens/home/HomeScreen';
 import FlowerCatalogScreen from '../screens/flowers/FlowerCatalogScreen';
@@ -15,7 +16,7 @@ const FlowerStack = createNativeStackNavigator();
 
 const FlowerStackScreen = () => {
     return (
-        <FlowerStack.Navigator>
+        <FlowerStack.Navigator id="FlowerStack">
             <FlowerStack.Screen
                 name={ROUTES.FLOWER_CATALOG}
                 component={FlowerCatalogScreen}
@@ -24,7 +25,7 @@ const FlowerStackScreen = () => {
             <FlowerStack.Screen
                 name={ROUTES.FLOWER_DETAIL}
                 component={FlowerDetailScreen}
-                options={({ route }) => ({
+                options={({ route }: any) => ({
                     title: route.params?.flower?.name || 'Flower Details',
                     headerStyle: { backgroundColor: '#ffffff' },
                     headerTintColor: '#1f2937',
@@ -45,6 +46,7 @@ const TAB_ICONS = {
 const MainNav = () => {
     return (
         <Tab.Navigator
+            id="MainTab"
             screenOptions={({ route }) => ({
                 tabBarIcon: ({ focused }) => (
                     <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>
@@ -63,21 +65,33 @@ const MainNav = () => {
                 name={ROUTES.HOME}
                 component={HomeScreen}
                 options={{ title: 'Home', headerShown: false }}
+                listeners={{
+                    tabPress: () => logInteraction('Tab pressed: Home'),
+                }}
             />
             <Tab.Screen
                 name={ROUTES.FLOWERS}
                 component={FlowerStackScreen}
                 options={{ title: 'Flowers', headerShown: false }}
+                listeners={{
+                    tabPress: () => logInteraction('Tab pressed: Flowers'),
+                }}
             />
             <Tab.Screen
                 name={ROUTES.RESERVATIONS}
                 component={ReservationsScreen}
                 options={{ title: 'Reservations' }}
+                listeners={{
+                    tabPress: () => logInteraction('Tab pressed: Reservations'),
+                }}
             />
             <Tab.Screen
                 name={ROUTES.PROFILE}
                 component={ProfileScreen}
                 options={{ title: 'Profile', headerShown: false }}
+                listeners={{
+                    tabPress: () => logInteraction('Tab pressed: Profile'),
+                }}
             />
         </Tab.Navigator>
     );

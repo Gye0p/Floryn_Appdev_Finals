@@ -13,32 +13,45 @@ import { clearToken } from '../../utils/tokenStorage';
 import COLORS from '../../theme/colors';
 import { getMyProfile } from '../../app/api/customerApi';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { logError, logInteraction } from '../../utils/logger';
 
 const ProfileScreen = () => {
-    const { data } = useSelector(state => state.auth);
+    const { data } = useSelector((state: any) => state.auth);
     const dispatch = useDispatch();
     const [profile, setProfile] = useState(data?.user || null);
     const [loading, setLoading] = useState(!data?.user);
 
     useEffect(() => {
         if (!data?.user && data?.token) {
+            logInteraction('Profile: fetch profile started');
             getMyProfile()
-                .then(setProfile)
-                .catch(() => { })
+                .then((nextProfile) => {
+                    setProfile(nextProfile);
+                    logInteraction('Profile: fetch profile success');
+                })
+                .catch((error) => {
+                    logError('Profile: fetch profile failed', error);
+                })
                 .finally(() => setLoading(false));
         }
     }, [data]);
 
     const handleLogout = () => {
+        logInteraction('Profile: logout requested');
         Alert.alert(
             'Logout',
             'Are you sure you want to sign out?',
             [
-                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                    onPress: () => logInteraction('Profile: logout cancelled'),
+                },
                 {
                     text: 'Sign Out',
                     style: 'destructive',
                     onPress: async () => {
+                        logInteraction('Profile: logout confirmed');
                         await clearToken();
                         dispatch(resetLogin());
                     },
