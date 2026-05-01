@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "863454685186",
+    "project_id": "floryn-app-ea7e3",
+    "storage_bucket": "floryn-app-ea7e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:863454685186:android:1a4d7812e546632bc51f1b",
+        "android_client_info": {
+          "package_name": "com.floryn_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "863454685186-hetouhrlt8dr1vb171gipnf0916g1vlh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.floryn_app",
+            "certificate_hash": "9ab2a21b2ecd24342cb48626b669cf9c4b6da1ec"
+          }
+        },
+        {
+          "client_id": "863454685186-6ba6iqdm7lt1dcnmacg8njtsalue6nl6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZNLnEjTSYPelSQiZtW7OfUjkl5JmZVaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "863454685186-6ba6iqdm7lt1dcnmacg8njtsalue6nl6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
