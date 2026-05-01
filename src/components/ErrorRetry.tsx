@@ -2,10 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import COLORS from '../theme/colors';
 
-const ErrorRetry = ({ message = 'Something went wrong', onRetry }) => {
+interface ErrorRetryProps {
+    message?: string;
+    onRetry?: () => void;
+}
+
+const ErrorRetry = ({ message = 'Something went wrong', onRetry }: ErrorRetryProps) => {
     return (
         <View style={styles.container}>
-            <Text style={styles.emoji}>😔</Text>
+            <View style={styles.divider} />
             <Text style={styles.message}>{message}</Text>
             {onRetry && (
                 <TouchableOpacity style={styles.button} onPress={onRetry}>
@@ -24,27 +29,30 @@ const styles = StyleSheet.create({
         padding: 24,
         backgroundColor: COLORS.background,
     },
-    emoji: {
-        fontSize: 48,
-        marginBottom: 12,
+    divider: {
+        width: 32,
+        height: 2,
+        backgroundColor: COLORS.border,
+        marginBottom: 16,
     },
     message: {
-        fontSize: 16,
+        fontSize: 14,
         color: COLORS.muted,
         textAlign: 'center',
         marginBottom: 20,
         lineHeight: 22,
     },
     button: {
-        backgroundColor: COLORS.blue,
-        paddingHorizontal: 28,
-        paddingVertical: 12,
-        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.navy,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
     },
     buttonText: {
-        color: COLORS.surface,
-        fontSize: 15,
-        fontWeight: '700',
+        color: COLORS.navy,
+        fontSize: 14,
+        fontWeight: '600',
     },
 });
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const ALL_COLORS = {
+const STATUS_COLORS: Record<string, string> = {
     Fresh: '#22c55e',
     Good: '#3b82f6',
     'Last Sale': '#f97316',
@@ -12,8 +12,13 @@ const ALL_COLORS = {
     Cancelled: '#ef4444',
 };
 
-const StatusBadge = ({ status, style }: { status: string; style?: any }) => {
-    const color = ALL_COLORS[status] || '#6b7280';
+interface StatusBadgeProps {
+    status: string;
+    style?: object;
+}
+
+const StatusBadge = ({ status, style }: StatusBadgeProps) => {
+    const color = STATUS_COLORS[status] || '#6b7280';
 
     return (
         <View style={[styles.badge, { backgroundColor: `${color}18` }, style]}>
@@ -27,18 +32,18 @@ const styles = StyleSheet.create({
     badge: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
+        paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 20,
+        borderRadius: 6,
     },
     dot: {
-        width: 6,
-        height: 6,
+        width: 5,
+        height: 5,
         borderRadius: 3,
-        marginRight: 6,
+        marginRight: 5,
     },
     text: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '600',
     },
 });

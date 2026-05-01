@@ -1,8 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { formatCurrency } from '../utils/formatCurrency';
+import COLORS from '../theme/colors';
 
-const PriceBadge = ({ price, discountPrice }) => {
+interface PriceBadgeProps {
+    price: number;
+    discountPrice?: number | null;
+}
+
+const PriceBadge = ({ price, discountPrice }: PriceBadgeProps) => {
     const showDiscount = discountPrice != null && discountPrice < price;
 
     return (
@@ -28,20 +34,20 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     price: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#1f2937',
+        fontSize: 17,
+        fontWeight: '700',
+        color: COLORS.text,
     },
     originalPrice: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#9ca3af',
+        fontSize: 13,
+        fontWeight: '400',
+        color: COLORS.muted,
         textDecorationLine: 'line-through',
     },
     discountPrice: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#ef4444',
+        fontSize: 17,
+        fontWeight: '700',
+        color: COLORS.danger,
     },
 });
 

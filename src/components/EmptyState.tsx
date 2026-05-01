@@ -1,10 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import COLORS from '../theme/colors';
 
-const EmptyState = ({ emoji = '🌸', message = 'Nothing here yet' }) => {
+interface EmptyStateProps {
+    message?: string;
+}
+
+const EmptyState = ({ message = 'Nothing here yet' }: EmptyStateProps) => {
     return (
         <View style={styles.container}>
-            <Text style={styles.emoji}>{emoji}</Text>
+            <View style={styles.divider} />
             <Text style={styles.message}>{message}</Text>
         </View>
     );
@@ -17,13 +22,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 24,
     },
-    emoji: {
-        fontSize: 56,
-        marginBottom: 12,
+    divider: {
+        width: 32,
+        height: 2,
+        backgroundColor: COLORS.border,
+        marginBottom: 16,
     },
     message: {
-        fontSize: 16,
-        color: '#9ca3af',
+        fontSize: 14,
+        color: COLORS.muted,
         textAlign: 'center',
         lineHeight: 22,
     },

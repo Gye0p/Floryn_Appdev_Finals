@@ -14,11 +14,8 @@ const FlowerCard = ({ flower, onPress }) => {
             style={styles.card}
             onPress={() => onPress?.(flower)}
             activeOpacity={0.7}>
-            {}
-            <View style={styles.accent} />
 
             <View style={styles.content}>
-                {}
                 <View style={styles.headerRow}>
                     <Text style={styles.name} numberOfLines={1}>
                         {flower.name}
@@ -26,10 +23,8 @@ const FlowerCard = ({ flower, onPress }) => {
                     <StatusBadge status={flower.freshnessStatus} />
                 </View>
 
-                {}
                 <Text style={styles.category}>{flower.category}</Text>
 
-                {}
                 <View style={styles.priceRow}>
                     <PriceBadge
                         price={flower.price}
@@ -37,13 +32,10 @@ const FlowerCard = ({ flower, onPress }) => {
                     />
                 </View>
 
-                {}
                 <View style={styles.footerRow}>
-                    <View style={styles.stockContainer}>
-                        <Text style={[styles.stock, lowStock && styles.lowStock]}>
-                            {lowStock ? '⚠ Low Stock' : `${flower.stockQuantity} in stock`}
-                        </Text>
-                    </View>
+                    <Text style={[styles.stock, lowStock && styles.lowStock]}>
+                        {lowStock ? 'Low stock' : `${flower.stockQuantity} in stock`}
+                    </Text>
                     {flower.supplier && (
                         <Text style={styles.supplier} numberOfLines={1}>
                             {flower.supplier}
@@ -57,20 +49,13 @@ const FlowerCard = ({ flower, onPress }) => {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
         marginHorizontal: 16,
-        marginVertical: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        elevation: 3,
+        marginVertical: 4,
+        borderWidth: 1,
+        borderColor: COLORS.border,
         overflow: 'hidden',
-    },
-    accent: {
-        height: 4,
-        backgroundColor: COLORS.navy,
     },
     content: {
         padding: 16,
@@ -82,15 +67,15 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     name: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#1f2937',
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.text,
         flex: 1,
         marginRight: 8,
     },
     category: {
-        fontSize: 13,
-        color: '#6b7280',
+        fontSize: 12,
+        color: COLORS.muted,
         marginBottom: 10,
     },
     priceRow: {
@@ -101,22 +86,18 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    stockContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     stock: {
         fontSize: 12,
-        color: '#6b7280',
+        color: COLORS.muted,
         fontWeight: '500',
     },
     lowStock: {
-        color: '#f59e0b',
-        fontWeight: '700',
+        color: COLORS.warning,
+        fontWeight: '600',
     },
     supplier: {
         fontSize: 12,
-        color: '#9ca3af',
+        color: COLORS.muted,
         maxWidth: 120,
     },
 });
