@@ -4,6 +4,12 @@ import createSagaMiddleware from 'redux-saga';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import auth from '../reducers/auth';
+import type { AuthState } from '../reducers/auth';
+
+// ─── Root State Type ──────────────────────────────────────────────────────────
+export interface RootState {
+    auth: AuthState;
+}
 
 const sagaMiddleware = createSagaMiddleware();
 const rootPersistConfig = {
@@ -25,8 +31,8 @@ const rootReducer = combineReducers({
 const persistedReducer = persistReducer(rootPersistConfig, rootReducer);
 
 export default () => {
-    let store = createStore(persistedReducer, applyMiddleware(sagaMiddleware));
-    let persistor = persistStore(store);
-    const runSaga = sagaMiddleware.run;
+    const store     = createStore(persistedReducer, applyMiddleware(sagaMiddleware));
+    const persistor = persistStore(store);
+    const runSaga   = sagaMiddleware.run;
     return { store, persistor, runSaga };
 };

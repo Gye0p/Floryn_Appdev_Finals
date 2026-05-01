@@ -1,12 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
 import AuthNav from './AuthNav';
 import MainNav from './MainNav';
+import { useAuth } from '../hooks/useAuth';
 import { logInteraction } from '../utils/logger';
 
 export default function AppNavigator() {
-    const { data } = useSelector((state: any) => state.auth);
-    let isLoggedIn = !!data;
+    const { isLoggedIn } = useAuth();
     const previousAuthState = useRef(isLoggedIn);
 
     useEffect(() => {
