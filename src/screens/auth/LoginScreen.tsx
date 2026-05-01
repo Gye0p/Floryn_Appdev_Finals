@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
     Image,
+    Alert,
     TextInput,
     TouchableOpacity,
     StyleSheet,
@@ -11,39 +12,209 @@ import {
     ScrollView,
     ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-import { userLogin, resetLogin } from '../../app/reducers/auth';
+import { resetLogin } from '../../app/reducers/auth';
+import {
+    USER_LOGIN_COMPLETED,
+    USER_LOGIN_ERROR,
+    USER_LOGIN_REQUEST,
+} from '../../app/actions';
+import { checkApproval } from '../../app/api/authApi';
 import COLORS from '../../theme/colors';
-import { IMG, ROUTES } from '../../utils';
+import {
+    getApprovalDeniedMessage,
+    getApprovalIdentifier,
+    IMG,
+    isApprovedByAdmin,
+    ROUTES,
+} from '../../utils';
+import {
+    GoogleSigninButton,
+    isGoogleSignInCancelled,
+    isPlayServicesUnavailable,
+    logCrashlytics,
+    logLogin,
+    logScreenView,
+    recordError,
+    sendPasswordReset,
+    setAnalyticsUserId,
+    setCrashlyticsUserId,
+    signInWithEmail,
+    signInWithGoogle,
+    signOut,
+} from '../../utils/firebase';
 import { logInteraction } from '../../utils/logger';
 
 const LoginScreen = () => {
     const { isLoading, isError } = useSelector((state: any) => state.auth);
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const navigation = useNavigation<any>();
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const handleUsernameChange = text => {
+    useFocusEffect(
+        useCallback(() => {
+            void logScreenView('Login');
+        }, []),
+    );
+
+    const mapFirebaseUserPayload = (user: any) => ({
+        token: user?.uid || '',
+        firebaseUid: user?.uid || '',
+        user: {
+            id: user?.uid || '',
+            username: user?.displayName || user?.email?.split('@')?.[0] || 'user',
+            fullName: user?.displayName || '',
+            email: user?.email || '',
+            roles: ['USER'],
+        },
+    });
+
+    const handleEmailChange = text => {
         if (isError) { dispatch(resetLogin()); }
-        setUsername(text);
+        setErrorMessage(null);
+        setEmail(text);
     };
     const handlePasswordChange = text => {
         if (isError) { dispatch(resetLogin()); }
+        setErrorMessage(null);
         setPassword(text);
     };
 
-    const handleLogin = () => {
-        if (!username.trim() || !password.trim()) {
+    const handleLogin = async () => {
+        if (!email.trim() || !password.trim()) {
             logInteraction('Login screen: blocked empty credentials');
             return;
         }
 
+        dispatch({ type: USER_LOGIN_REQUEST });
+        setErrorMessage(null);
+
         logInteraction('Login screen: submit', {
-            username: username.trim(),
+            email: email.trim(),
         });
-        dispatch(userLogin({ username: username.trim(), password }));
+
+        try {
+            logCrashlytics('Login screen: email sign-in started');
+            const credential = await signInWithEmail(email.trim(), password);
+
+            const approvalUsername = getApprovalIdentifier({
+                email: credential.user.email,
+                displayName: credential.user.displayName,
+                fallback: email.trim(),
+            });
+            const approvalResult = await checkApproval(approvalUsername);
+
+            if (!isApprovedByAdmin(approvalResult)) {
+                await signOut();
+                const pendingMessage = getApprovalDeniedMessage(approvalResult);
+                setErrorMessage(pendingMessage);
+                dispatch({ type: USER_LOGIN_ERROR, payload: pendingMessage });
+                navigation.navigate(ROUTES.APPROVAL_PENDING, {
+                    message: pendingMessage,
+                });
+                return;
+            }
+
+            const authPayload = mapFirebaseUserPayload(credential.user);
+
+            await setAnalyticsUserId(credential.user.uid);
+            await setCrashlyticsUserId(credential.user.uid);
+            await logLogin('email');
+
+            dispatch({ type: USER_LOGIN_COMPLETED, payload: authPayload });
+            logInteraction('Login screen: email sign-in success', {
+                uid: credential.user.uid,
+            });
+        } catch (error) {
+            const message =
+                typeof error === 'object' && error !== null && 'message' in error
+                    ? String((error as { message?: unknown }).message ?? 'Login failed. Please try again.')
+                    : 'Login failed. Please try again.';
+            setErrorMessage(message);
+            dispatch({ type: USER_LOGIN_ERROR, payload: message });
+            recordError(error, 'LoginScreen signInWithEmail failed');
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        dispatch({ type: USER_LOGIN_REQUEST });
+        setErrorMessage(null);
+
+        try {
+            logCrashlytics('Login screen: Google sign-in started');
+            const credential = await signInWithGoogle();
+
+            const approvalUsername = getApprovalIdentifier({
+                email: credential.user.email,
+                displayName: credential.user.displayName,
+            });
+            const approvalResult = await checkApproval(approvalUsername);
+
+            if (!isApprovedByAdmin(approvalResult)) {
+                await signOut();
+                const pendingMessage = getApprovalDeniedMessage(approvalResult);
+                setErrorMessage(pendingMessage);
+                dispatch({ type: USER_LOGIN_ERROR, payload: pendingMessage });
+                navigation.navigate(ROUTES.APPROVAL_PENDING, {
+                    message: pendingMessage,
+                });
+                return;
+            }
+
+            const authPayload = mapFirebaseUserPayload(credential.user);
+
+            await setAnalyticsUserId(credential.user.uid);
+            await setCrashlyticsUserId(credential.user.uid);
+            await logLogin('google');
+
+            dispatch({ type: USER_LOGIN_COMPLETED, payload: authPayload });
+            logInteraction('Login screen: Google sign-in success', {
+                uid: credential.user.uid,
+            });
+        } catch (error) {
+            if (isGoogleSignInCancelled(error)) {
+                dispatch(resetLogin());
+                return;
+            }
+
+            if (isPlayServicesUnavailable(error)) {
+                const playServicesMessage = 'Google Play Services is unavailable or outdated.';
+                setErrorMessage(playServicesMessage);
+                dispatch({ type: USER_LOGIN_ERROR, payload: playServicesMessage });
+                return;
+            }
+
+            const message =
+                typeof error === 'object' && error !== null && 'message' in error
+                    ? String((error as { message?: unknown }).message ?? 'Google Sign-In failed. Please try again.')
+                    : 'Google Sign-In failed. Please try again.';
+            setErrorMessage(message);
+            dispatch({ type: USER_LOGIN_ERROR, payload: message });
+            recordError(error, 'LoginScreen signInWithGoogle failed');
+        }
+    };
+
+    const handlePasswordReset = async () => {
+        if (!email.trim()) {
+            Alert.alert('Reset Password', 'Please enter your email first.');
+            return;
+        }
+
+        try {
+            await sendPasswordReset(email.trim());
+            await logCrashlytics('Login screen: password reset email sent');
+            Alert.alert('Reset Password', 'Password reset email sent. Please check your inbox.');
+        } catch (error) {
+            recordError(error, 'LoginScreen sendPasswordReset failed');
+            const message =
+                typeof error === 'object' && error !== null && 'message' in error
+                    ? String((error as { message?: unknown }).message ?? 'Failed to send reset email.')
+                    : 'Failed to send reset email.';
+            Alert.alert('Reset Password', message);
+        }
     };
 
     return (
@@ -54,31 +225,29 @@ const LoginScreen = () => {
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled">
 
-                {}
                 <View style={styles.brandContainer}>
                     <Image source={IMG.LOGO} style={styles.logo} resizeMode="contain" />
-                    <Text style={styles.subtitle}>Browse & Order Flowers</Text>
                 </View>
 
-                {}
                 <View style={styles.formContainer}>
                     {isError && (
                         <View style={styles.errorBox}>
                             <Text style={styles.errorText}>
-                                Login failed. Please try again.
+                                {errorMessage || 'Login failed. Please try again.'}
                             </Text>
                         </View>
                     )}
 
-                    <Text style={styles.label}>Username</Text>
+                    <Text style={styles.label}>Email</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Enter your username"
+                        placeholder="Enter your email"
                         placeholderTextColor={COLORS.muted}
-                        value={username}
-                        onChangeText={handleUsernameChange}
+                        value={email}
+                        onChangeText={handleEmailChange}
                         autoCapitalize="none"
                         autoCorrect={false}
+                        keyboardType="email-address"
                         editable={!isLoading}
                     />
 
@@ -94,9 +263,17 @@ const LoginScreen = () => {
                     />
 
                     <TouchableOpacity
-                        style={[styles.loginButton, (isLoading || !username.trim() || !password.trim()) && styles.loginButtonDisabled]}
+                        style={styles.forgotPasswordButton}
+                        onPress={handlePasswordReset}
+                        disabled={isLoading}
+                        activeOpacity={0.8}>
+                        <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.loginButton, (isLoading || !email.trim() || !password.trim()) && styles.loginButtonDisabled]}
                         onPress={handleLogin}
-                        disabled={isLoading || !username.trim() || !password.trim()}
+                        disabled={isLoading || !email.trim() || !password.trim()}
                         activeOpacity={0.8}>
                         {isLoading ? (
                             <ActivityIndicator color="#ffffff" />
@@ -104,9 +281,18 @@ const LoginScreen = () => {
                             <Text style={styles.loginButtonText}>Sign In</Text>
                         )}
                     </TouchableOpacity>
+
+                    <View style={styles.googleButtonContainer}>
+                        <GoogleSigninButton
+                            style={styles.googleButton}
+                            size={GoogleSigninButton.Size.Wide}
+                            color={GoogleSigninButton.Color.Dark}
+                            onPress={handleGoogleLogin}
+                            disabled={isLoading}
+                        />
+                    </View>
                 </View>
 
-                {}
                 <View style={styles.registerRow}>
                     <Text style={styles.registerHint}>Don&apos;t have an account? </Text>
                     <TouchableOpacity onPress={() => {
@@ -117,7 +303,7 @@ const LoginScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                <Text style={styles.footer}>Floryn Garden — Customer App</Text>
+                <Text style={styles.footer}>Floryn Garden</Text>
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -136,99 +322,102 @@ const styles = StyleSheet.create({
     },
     brandContainer: {
         alignItems: 'center',
-        marginBottom: 40,
+        marginBottom: 32,
     },
     logo: {
-        width:        280,
-        height:       110,
-        marginBottom: 12,
-    },
-    subtitle: {
-        fontSize:   14,
-        color:      COLORS.muted,
-        marginTop:  4,
-        fontWeight: '500',
+        width: 240,
+        height: 96,
     },
     formContainer: {
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
         padding: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 20,
-        elevation: 4,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     errorBox: {
-        backgroundColor: '#fef2f2',
-        borderRadius: 12,
+        backgroundColor: COLORS.background,
+        borderRadius: 6,
         padding: 12,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#fecaca',
+        borderColor: COLORS.danger,
     },
     errorText: {
-        color: '#dc2626',
+        color: COLORS.danger,
         fontSize: 13,
         fontWeight: '500',
         textAlign: 'center',
     },
     label: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '600',
-        color: '#374151',
+        color: COLORS.text,
         marginBottom: 6,
     },
     input: {
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 15,
-        color: '#1f2937',
+        borderColor: COLORS.border,
+        borderRadius: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 14,
+        color: COLORS.text,
         marginBottom: 16,
     },
+    forgotPasswordButton: {
+        alignSelf: 'flex-end',
+        marginTop: -8,
+        marginBottom: 16,
+    },
+    forgotPasswordText: {
+        color: COLORS.blue,
+        fontSize: 12,
+        fontWeight: '500',
+    },
     loginButton: {
-        backgroundColor: COLORS.blue,
-        borderRadius: 12,
-        paddingVertical: 16,
+        backgroundColor: COLORS.navy,
+        borderRadius: 8,
+        paddingVertical: 14,
         alignItems: 'center',
-        marginTop: 8,
-        shadowColor: COLORS.blue,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
+        marginTop: 4,
     },
     loginButtonDisabled: {
-        opacity: 0.7,
+        opacity: 0.5,
     },
     loginButtonText: {
-        color:      '#ffffff',
-        fontSize:   16,
-        fontWeight: '700',
+        color: '#ffffff',
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    googleButtonContainer: {
+        marginTop: 12,
+        alignItems: 'center',
+    },
+    googleButton: {
+        width: 260,
+        height: 48,
     },
     registerRow: {
-        flexDirection:  'row',
+        flexDirection: 'row',
         justifyContent: 'center',
-        alignItems:     'center',
-        marginTop:      20,
+        alignItems: 'center',
+        marginTop: 20,
     },
     registerHint: {
-        color:    COLORS.muted,
+        color: COLORS.muted,
         fontSize: 13,
     },
     registerLink: {
-        color:      COLORS.blue,
-        fontSize:   13,
-        fontWeight: '700',
+        color: COLORS.blue,
+        fontSize: 13,
+        fontWeight: '600',
     },
     footer: {
         textAlign: 'center',
-        color:     COLORS.muted,
-        fontSize:  12,
+        color: COLORS.muted,
+        fontSize: 11,
         marginTop: 16,
     },
 });
