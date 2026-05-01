@@ -11,6 +11,8 @@ const INITIAL_STATE = {
     data: null,
     isLoading: false,
     isError: false,
+    errorMessage: null,
+    pendingApproval: false,
 };
 
 export default function reducer(state = INITIAL_STATE, action) {
@@ -22,6 +24,8 @@ export default function reducer(state = INITIAL_STATE, action) {
                 data: null,
                 isLoading: true,
                 isError: false,
+                errorMessage: null,
+                pendingApproval: false,
             };
 
         case USER_LOGIN_COMPLETED:
@@ -33,16 +37,27 @@ export default function reducer(state = INITIAL_STATE, action) {
                 data: action.payload,
                 isLoading: false,
                 isError: false,
+                errorMessage: null,
+                pendingApproval: false,
             };
 
         case USER_LOGIN_ERROR:
             logInteraction('Auth: login failed', {
                 reason: action.payload || 'Unknown error',
             });
+
+            const nextMessage = action.payload ? String(action.payload) : null;
+            const normalizedMessage = (nextMessage || '').toLowerCase();
+            const isPendingApproval =
+                normalizedMessage.includes('pending admin approval') ||
+                normalizedMessage.includes('not approved');
+
             return {
                 data: null,
                 isLoading: false,
                 isError: true,
+                errorMessage: nextMessage,
+                pendingApproval: isPendingApproval,
             };
 
         case USER_LOGIN_RESET:
