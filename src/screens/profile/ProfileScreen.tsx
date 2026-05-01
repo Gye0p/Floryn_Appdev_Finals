@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,12 +7,14 @@ import {
     ScrollView,
     Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetLogin } from '../../app/reducers/auth';
 import { clearToken } from '../../utils/tokenStorage';
 import COLORS from '../../theme/colors';
 import { getMyProfile } from '../../app/api/customerApi';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { logScreenView, signOut, testCrash } from '../../utils/firebase';
 import { logError, logInteraction } from '../../utils/logger';
 
 const ProfileScreen = () => {
@@ -36,10 +38,16 @@ const ProfileScreen = () => {
         }
     }, [data]);
 
+    useFocusEffect(
+        useCallback(() => {
+            void logScreenView('Profile');
+        }, []),
+    );
+
     const handleLogout = () => {
         logInteraction('Profile: logout requested');
         Alert.alert(
-            'Logout',
+            'Sign Out',
             'Are you sure you want to sign out?',
             [
                 {
@@ -52,6 +60,7 @@ const ProfileScreen = () => {
                     style: 'destructive',
                     onPress: async () => {
                         logInteraction('Profile: logout confirmed');
+                        await signOut();
                         await clearToken();
                         dispatch(resetLogin());
                     },
@@ -65,15 +74,13 @@ const ProfileScreen = () => {
     }
 
     const displayUser = profile || data?.user;
+    const initial = displayUser?.username?.charAt(0)?.toUpperCase() || '?';
 
     return (
         <ScrollView style={styles.container}>
-            {}
             <View style={styles.header}>
                 <View style={styles.avatarContainer}>
-                    <Text style={styles.avatarText}>
-                        {displayUser?.username?.charAt(0)?.toUpperCase() || '?'}
-                    </Text>
+                    <Text style={styles.avatarText}>{initial}</Text>
                 </View>
                 <Text style={styles.username}>{displayUser?.username || 'User'}</Text>
                 <View style={styles.rolesContainer}>
@@ -87,9 +94,8 @@ const ProfileScreen = () => {
                 </View>
             </View>
 
-            {}
             <View style={styles.infoCard}>
-                <Text style={styles.infoTitle}>Account Information</Text>
+                <Text style={styles.infoTitle}>Account</Text>
                 <InfoRow label="Full Name" value={displayUser?.fullName || 'N/A'} />
                 <InfoRow label="Username" value={displayUser?.username || 'N/A'} />
                 <InfoRow label="Email" value={displayUser?.email || 'N/A'} />
@@ -98,15 +104,13 @@ const ProfileScreen = () => {
                 <InfoRow label="Member Since" value={displayUser?.memberSince || 'N/A'} />
             </View>
 
-            {}
             <View style={styles.infoCard}>
                 <Text style={styles.infoTitle}>Application</Text>
-                <InfoRow label="App Name" value="Floryn Garden" />
+                <InfoRow label="App" value="Floryn Garden" />
                 <InfoRow label="Version" value="1.0.0" />
-                <InfoRow label="Type" value="Customer App" />
+                <InfoRow label="Type" value="Customer" />
             </View>
 
-            {}
             <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
@@ -114,9 +118,16 @@ const ProfileScreen = () => {
                 <Text style={styles.logoutText}>Sign Out</Text>
             </TouchableOpacity>
 
-            <Text style={styles.footer}>
-                Floryn Garden — Customer App{'\n'}© 2026
-            </Text>
+            {__DEV__ && (
+                <TouchableOpacity
+                    style={styles.testCrashButton}
+                    onPress={testCrash}
+                    activeOpacity={0.8}>
+                    <Text style={styles.testCrashText}>Test Crash (Dev Only)</Text>
+                </TouchableOpacity>
+            )}
+
+            <Text style={styles.footer}>Floryn Garden{'\n'}© 2026</Text>
         </ScrollView>
     );
 };
@@ -131,68 +142,68 @@ const InfoRow = ({ label, value }) => (
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
     },
     header: {
         backgroundColor: COLORS.navy,
         paddingTop: 32,
-        paddingBottom: 40,
-        alignItems: 'center',
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
+        paddingBottom: 32,
+        paddingHorizontal: 24,
+        alignItems: 'flex-start',
     },
     avatarContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        width: 48,
+        height: 48,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
     },
     avatarText: {
-        fontSize: 32,
-        fontWeight: '800',
+        fontSize: 22,
+        fontWeight: '700',
         color: '#ffffff',
     },
     username: {
-        fontSize: 24,
-        fontWeight: '800',
+        fontSize: 20,
+        fontWeight: '700',
         color: '#ffffff',
-        letterSpacing: -0.3,
+        marginBottom: 8,
     },
     rolesContainer: {
         flexDirection: 'row',
-        marginTop: 8,
         gap: 8,
     },
     roleBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        paddingHorizontal: 14,
-        paddingVertical: 4,
-        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 4,
     },
     roleText: {
-        color: '#ffffff',
-        fontSize: 12,
-        fontWeight: '700',
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 11,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
     },
     infoCard: {
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
         marginHorizontal: 16,
-        marginTop: 16,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
+        marginTop: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     infoTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#9ca3af',
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.muted,
         textTransform: 'uppercase',
         letterSpacing: 0.8,
         marginBottom: 12,
@@ -203,37 +214,50 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
+        borderBottomColor: COLORS.border,
     },
     infoLabel: {
         fontSize: 14,
-        color: '#6b7280',
-        fontWeight: '500',
+        color: COLORS.muted,
+        fontWeight: '400',
     },
     infoValue: {
         fontSize: 14,
-        color: '#1f2937',
+        color: COLORS.text,
         fontWeight: '600',
     },
     logoutButton: {
-        backgroundColor: '#fee2e2',
         marginHorizontal: 16,
-        marginTop: 24,
-        paddingVertical: 16,
-        borderRadius: 14,
+        marginTop: 20,
+        paddingVertical: 14,
+        borderRadius: 8,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#fecaca',
+        borderColor: COLORS.danger,
     },
     logoutText: {
-        color: '#dc2626',
-        fontSize: 16,
-        fontWeight: '700',
+        color: COLORS.danger,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    testCrashButton: {
+        marginHorizontal: 16,
+        marginTop: 8,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    testCrashText: {
+        color: COLORS.muted,
+        fontSize: 13,
+        fontWeight: '500',
     },
     footer: {
         textAlign: 'center',
-        color: '#9ca3af',
-        fontSize: 12,
+        color: COLORS.muted,
+        fontSize: 11,
         marginTop: 24,
         marginBottom: 32,
         lineHeight: 18,

@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import StatusBadge from '../../components/StatusBadge';
 import PriceBadge from '../../components/PriceBadge';
 import { formatCurrency } from '../../utils/formatCurrency';
 import COLORS from '../../theme/colors';
+import { logScreenView } from '../../utils/firebase';
 import { logInteraction } from '../../utils/logger';
 
 const isLowStock = (flower) => flower.stockQuantity > 0 && flower.stockQuantity < 5;
@@ -19,16 +21,19 @@ const FlowerDetailScreen = ({ route }) => {
         });
     }, [flower]);
 
+    useFocusEffect(
+        useCallback(() => {
+            void logScreenView('FlowerDetail');
+        }, []),
+    );
+
     return (
         <ScrollView style={styles.container}>
-            {}
             <View style={styles.hero}>
-                <Text style={styles.heroEmoji}>🌺</Text>
                 <Text style={styles.heroName}>{flower.name}</Text>
                 <Text style={styles.heroCategory}>{flower.category}</Text>
             </View>
 
-            {}
             <View style={styles.card}>
                 <Text style={styles.cardTitle}>Price</Text>
                 <PriceBadge
@@ -36,15 +41,12 @@ const FlowerDetailScreen = ({ route }) => {
                     discountPrice={flower.discountPrice}
                 />
                 {flower.discountPrice != null && flower.discountPrice < flower.price && (
-                    <View style={styles.savingsContainer}>
-                        <Text style={styles.savingsText}>
-                            Save {formatCurrency(flower.price - flower.discountPrice)}!
-                        </Text>
-                    </View>
+                    <Text style={styles.savingsText}>
+                        Save {formatCurrency(flower.price - flower.discountPrice)}
+                    </Text>
                 )}
             </View>
 
-            {}
             <View style={styles.card}>
                 <Text style={styles.cardTitle}>Status</Text>
                 <View style={styles.statusRow}>
@@ -59,27 +61,19 @@ const FlowerDetailScreen = ({ route }) => {
                 </View>
             </View>
 
-            {}
             <View style={styles.card}>
                 <Text style={styles.cardTitle}>Stock</Text>
                 <View style={styles.stockRow}>
-                    <Text
-                        style={[
-                            styles.stockValue,
-                            lowStock && styles.lowStockValue,
-                        ]}>
+                    <Text style={[styles.stockValue, lowStock && styles.lowStockValue]}>
                         {flower.stockQuantity}
                     </Text>
                     <Text style={styles.stockUnit}>units available</Text>
                 </View>
                 {lowStock && (
-                    <View style={styles.lowStockBanner}>
-                        <Text style={styles.lowStockText}>⚠️ Low Stock — Order soon!</Text>
-                    </View>
+                    <Text style={styles.lowStockText}>Low stock — order soon</Text>
                 )}
             </View>
 
-            {}
             <View style={[styles.card, styles.lastCard]}>
                 <Text style={styles.cardTitle}>Details</Text>
                 <DetailRow label="Supplier" value={flower.supplier || 'N/A'} />
@@ -100,69 +94,51 @@ const DetailRow = ({ label, value }) => (
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
     },
     hero: {
         backgroundColor: COLORS.navy,
         paddingHorizontal: 24,
         paddingTop: 24,
-        paddingBottom: 36,
-        alignItems: 'center',
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
-    },
-    heroEmoji: {
-        fontSize: 56,
-        marginBottom: 12,
+        paddingBottom: 32,
     },
     heroName: {
-        fontSize: 26,
-        fontWeight: '800',
+        fontSize: 24,
+        fontWeight: '700',
         color: '#ffffff',
-        textAlign: 'center',
-        letterSpacing: -0.3,
+        letterSpacing: -0.2,
+        marginBottom: 4,
     },
     heroCategory: {
-        fontSize: 15,
+        fontSize: 14,
         color: COLORS.mint,
-        marginTop: 4,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
         marginHorizontal: 16,
-        marginTop: 16,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
+        marginTop: 12,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     lastCard: {
         marginBottom: 32,
     },
     cardTitle: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#9ca3af',
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.muted,
         textTransform: 'uppercase',
         letterSpacing: 0.8,
         marginBottom: 12,
     },
-    savingsContainer: {
-        backgroundColor: '#fef2f2',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        marginTop: 10,
-        alignSelf: 'flex-start',
-    },
     savingsText: {
-        color: '#ef4444',
+        marginTop: 8,
         fontSize: 13,
-        fontWeight: '700',
+        color: COLORS.muted,
+        fontWeight: '500',
     },
     statusRow: {
         flexDirection: 'row',
@@ -173,9 +149,9 @@ const styles = StyleSheet.create({
     },
     statusLabel: {
         fontSize: 12,
-        color: '#6b7280',
+        color: COLORS.muted,
         marginBottom: 6,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     stockRow: {
         flexDirection: 'row',
@@ -183,29 +159,23 @@ const styles = StyleSheet.create({
         gap: 6,
     },
     stockValue: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: '#1f2937',
+        fontSize: 28,
+        fontWeight: '700',
+        color: COLORS.text,
     },
     stockUnit: {
         fontSize: 14,
-        color: '#6b7280',
-        fontWeight: '500',
+        color: COLORS.muted,
+        fontWeight: '400',
     },
     lowStockValue: {
-        color: '#f59e0b',
-    },
-    lowStockBanner: {
-        backgroundColor: '#fef3c7',
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        marginTop: 12,
+        color: COLORS.warning,
     },
     lowStockText: {
-        color: '#92400e',
+        marginTop: 8,
         fontSize: 13,
-        fontWeight: '600',
+        color: COLORS.warning,
+        fontWeight: '500',
     },
     detailRow: {
         flexDirection: 'row',
@@ -213,16 +183,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
+        borderBottomColor: COLORS.border,
     },
     detailLabel: {
         fontSize: 14,
-        color: '#6b7280',
-        fontWeight: '500',
+        color: COLORS.muted,
+        fontWeight: '400',
     },
     detailValue: {
         fontSize: 14,
-        color: '#1f2937',
+        color: COLORS.text,
         fontWeight: '600',
     },
 });

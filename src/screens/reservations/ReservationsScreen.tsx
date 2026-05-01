@@ -7,6 +7,7 @@ import {
     StyleSheet,
     RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { getMyReservations } from '../../app/api/customerApi';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -14,6 +15,7 @@ import ErrorRetry from '../../components/ErrorRetry';
 import COLORS from '../../theme/colors';
 import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { logScreenView } from '../../utils/firebase';
 import { logError, logInteraction } from '../../utils/logger';
 
 const RESERVATION_STATUSES = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
@@ -49,6 +51,12 @@ const ReservationsScreen = () => {
         refresh();
     }, [refresh]);
 
+    useFocusEffect(
+        useCallback(() => {
+            void logScreenView('Reservations');
+        }, []),
+    );
+
     const statuses = useMemo(() => ['All', ...RESERVATION_STATUSES], []);
 
     const filteredReservations = useMemo(() => {
@@ -66,11 +74,10 @@ const ReservationsScreen = () => {
 
     const renderReservation = ({ item }) => (
         <View style={styles.card}>
-            {}
             <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderLeft}>
                     <Text style={styles.reservationId}>#{item.id}</Text>
-                    <Text style={styles.customerName}>
+                    <Text style={styles.itemNames}>
                         {item.items?.length
                             ? item.items.map((i) => i.flowerName).join(', ')
                             : 'No items'}
@@ -79,25 +86,23 @@ const ReservationsScreen = () => {
                 <StatusBadge status={item.reservationStatus} />
             </View>
 
-            {}
             <View style={styles.cardBody}>
                 <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>📅 Pickup</Text>
+                    <Text style={styles.detailLabel}>Pickup</Text>
                     <Text style={styles.detailValue}>{item.pickupDate || 'N/A'}</Text>
                 </View>
                 <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>💰 Amount</Text>
+                    <Text style={styles.detailLabel}>Amount</Text>
                     <Text style={styles.detailValue}>
                         {formatCurrency(item.totalAmount)}
                     </Text>
                 </View>
             </View>
 
-            {}
             <View style={styles.cardFooter}>
                 <StatusBadge status={item.paymentStatus} />
                 <Text style={styles.dateReserved}>
-                    Reserved: {item.dateReserved?.split(' ')[0] || 'N/A'}
+                    Reserved {item.dateReserved?.split(' ')[0] || 'N/A'}
                 </Text>
             </View>
         </View>
@@ -105,7 +110,6 @@ const ReservationsScreen = () => {
 
     return (
         <View style={styles.container}>
-            {}
             <FlatList
                 horizontal
                 data={statuses}
@@ -130,7 +134,6 @@ const ReservationsScreen = () => {
                 )}
             />
 
-            {}
             <FlatList
                 data={filteredReservations}
                 keyExtractor={(item) => String(item.id)}
@@ -140,13 +143,12 @@ const ReservationsScreen = () => {
                     <RefreshControl
                         refreshing={loading}
                         onRefresh={refresh}
-                        colors={[COLORS.blue]}
-                        tintColor={COLORS.blue}
+                        colors={[COLORS.navy]}
+                        tintColor={COLORS.navy}
                     />
                 }
                 ListEmptyComponent={
                     <EmptyState
-                        emoji="📋"
                         message={
                             selectedStatus !== 'All'
                                 ? `No ${selectedStatus.toLowerCase()} reservations`
@@ -168,7 +170,7 @@ const ReservationsScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
     },
     filterContainer: {
         paddingHorizontal: 16,
@@ -176,47 +178,45 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     filterChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#ffffff',
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 6,
+        backgroundColor: COLORS.surface,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: COLORS.border,
         marginRight: 8,
     },
     filterChipActive: {
-        backgroundColor: '#3b82f6',
-        borderColor: '#3b82f6',
+        backgroundColor: COLORS.navy,
+        borderColor: COLORS.navy,
     },
     filterChipText: {
         fontSize: 13,
-        color: '#6b7280',
-        fontWeight: '600',
+        color: COLORS.muted,
+        fontWeight: '500',
     },
     filterChipTextActive: {
         color: '#ffffff',
+        fontWeight: '600',
     },
     listContent: {
         paddingBottom: 24,
     },
     resultCount: {
-        fontSize: 13,
-        color: '#9ca3af',
-        fontWeight: '500',
+        fontSize: 12,
+        color: COLORS.muted,
+        fontWeight: '400',
         paddingHorizontal: 20,
         paddingBottom: 8,
     },
     card: {
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
+        backgroundColor: COLORS.surface,
+        borderRadius: 8,
         marginHorizontal: 16,
-        marginVertical: 6,
+        marginVertical: 4,
         padding: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: COLORS.border,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -229,15 +229,15 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     reservationId: {
-        fontSize: 12,
-        color: '#9ca3af',
-        fontWeight: '600',
+        fontSize: 11,
+        color: COLORS.muted,
+        fontWeight: '500',
         marginBottom: 2,
     },
-    customerName: {
-        fontSize: 17,
-        fontWeight: '700',
-        color: '#1f2937',
+    itemNames: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: COLORS.text,
     },
     cardBody: {
         flexDirection: 'row',
@@ -248,14 +248,16 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     detailLabel: {
-        fontSize: 12,
-        color: '#6b7280',
+        fontSize: 11,
+        color: COLORS.muted,
         marginBottom: 2,
-        fontWeight: '500',
+        fontWeight: '400',
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
     },
     detailValue: {
-        fontSize: 15,
-        color: '#1f2937',
+        fontSize: 14,
+        color: COLORS.text,
         fontWeight: '600',
     },
     cardFooter: {
@@ -263,13 +265,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
+        borderTopColor: COLORS.border,
         paddingTop: 12,
     },
     dateReserved: {
         fontSize: 11,
-        color: '#9ca3af',
-        fontWeight: '500',
+        color: COLORS.muted,
+        fontWeight: '400',
     },
 });
 

@@ -8,6 +8,7 @@ import {
     StyleSheet,
     RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { getCustomerFlowers, getFlowerCategories } from '../../app/api/customerApi';
 import { ROUTES } from '../../utils';
 import FlowerCard from '../../components/FlowerCard';
@@ -15,6 +16,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorRetry from '../../components/ErrorRetry';
 import COLORS from '../../theme/colors';
 import EmptyState from '../../components/EmptyState';
+import { logScreenView } from '../../utils/firebase';
 import { logError, logInteraction } from '../../utils/logger';
 
 const FlowerCatalogScreen = ({ navigation }) => {
@@ -52,13 +54,17 @@ const FlowerCatalogScreen = ({ navigation }) => {
         refresh();
     }, [refresh]);
 
+    useFocusEffect(
+        useCallback(() => {
+            void logScreenView('FlowerCatalog');
+        }, []),
+    );
+
     const filteredFlowers = useMemo(() => {
         let result = flowers;
-
         if (selectedCategory !== 'All') {
             result = result.filter((f) => f.category === selectedCategory);
         }
-
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             result = result.filter(
@@ -68,7 +74,6 @@ const FlowerCatalogScreen = ({ navigation }) => {
                     f.supplier?.toLowerCase().includes(query),
             );
         }
-
         return result;
     }, [flowers, selectedCategory, searchQuery]);
 
@@ -102,27 +107,26 @@ const FlowerCatalogScreen = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            {}
             <View style={styles.searchContainer}>
-                <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search flowers..."
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={COLORS.muted}
                     value={searchQuery}
                     onChangeText={handleSearchChange}
                 />
                 {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => {
-                        logInteraction('Flower catalog: clear search');
-                        setSearchQuery('');
-                    }}>
-                        <Text style={styles.clearButton}>✕</Text>
+                    <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={() => {
+                            logInteraction('Flower catalog: clear search');
+                            setSearchQuery('');
+                        }}>
+                        <Text style={styles.clearButtonText}>Clear</Text>
                     </TouchableOpacity>
                 )}
             </View>
 
-            {}
             <FlatList
                 horizontal
                 data={categories}
@@ -147,7 +151,6 @@ const FlowerCatalogScreen = ({ navigation }) => {
                 )}
             />
 
-            {}
             <FlatList
                 data={filteredFlowers}
                 keyExtractor={(item) => String(item.id)}
@@ -159,13 +162,12 @@ const FlowerCatalogScreen = ({ navigation }) => {
                     <RefreshControl
                         refreshing={loading}
                         onRefresh={refresh}
-                        colors={[COLORS.blue]}
-                        tintColor={COLORS.blue}
+                        colors={[COLORS.navy]}
+                        tintColor={COLORS.navy}
                     />
                 }
                 ListEmptyComponent={
                     <EmptyState
-                        emoji="🌷"
                         message={
                             searchQuery || selectedCategory !== 'All'
                                 ? 'No flowers match your filters'
@@ -187,34 +189,34 @@ const FlowerCatalogScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: COLORS.background,
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#ffffff',
+        backgroundColor: COLORS.surface,
         marginHorizontal: 16,
         marginTop: 12,
         marginBottom: 8,
-        borderRadius: 14,
+        borderRadius: 8,
         paddingHorizontal: 14,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
-    },
-    searchIcon: {
-        fontSize: 16,
-        marginRight: 8,
+        borderColor: COLORS.border,
     },
     searchInput: {
         flex: 1,
         paddingVertical: 12,
-        fontSize: 15,
-        color: '#1f2937',
+        fontSize: 14,
+        color: COLORS.text,
     },
     clearButton: {
-        fontSize: 16,
-        color: '#9ca3af',
         paddingLeft: 8,
+        paddingVertical: 4,
+    },
+    clearButtonText: {
+        fontSize: 12,
+        color: COLORS.muted,
+        fontWeight: '500',
     },
     categoryContainer: {
         paddingHorizontal: 16,
@@ -222,33 +224,34 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     categoryChip: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#ffffff',
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 6,
+        backgroundColor: COLORS.surface,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: COLORS.border,
         marginRight: 8,
     },
     categoryChipActive: {
-        backgroundColor: COLORS.blue,
-        borderColor: COLORS.blue,
+        backgroundColor: COLORS.navy,
+        borderColor: COLORS.navy,
     },
     categoryChipText: {
         fontSize: 13,
-        color: '#6b7280',
-        fontWeight: '600',
+        color: COLORS.muted,
+        fontWeight: '500',
     },
     categoryChipTextActive: {
         color: '#ffffff',
+        fontWeight: '600',
     },
     listContent: {
         paddingBottom: 24,
     },
     resultCount: {
-        fontSize: 13,
-        color: '#9ca3af',
-        fontWeight: '500',
+        fontSize: 12,
+        color: COLORS.muted,
+        fontWeight: '400',
         paddingHorizontal: 20,
         paddingVertical: 8,
     },
