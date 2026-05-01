@@ -2,6 +2,7 @@ export default {
 
     LOGIN:    'Login',
     REGISTER: 'Register',
+    APPROVAL_PENDING: 'ApprovalPending',
 
     HOME:         'Home',
     FLOWERS:      'Flowers',
