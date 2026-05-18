@@ -28,8 +28,8 @@ export const useAuth = () => {
     const token      = data?.token  ?? null;
 
     // ── Actions ───────────────────────────────────────────────────────────────
-    const login = (email: string, password: string) =>
-        dispatch(userLogin({ email, password }));
+    const login = (username: string, password: string) =>
+        dispatch(userLogin({ username, password }));
 
     const loginWithGoogle = () =>
         dispatch(googleLogin());

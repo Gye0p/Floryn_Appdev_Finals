@@ -17,18 +17,24 @@ import EmptyState from '../../components/EmptyState';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { logScreenView } from '../../utils/firebase';
 import { logError, logInteraction } from '../../utils/logger';
+import { websocketService } from '../../services/websocketService';
 
 const RESERVATION_STATUSES = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
 const ReservationsScreen = () => {
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [selectedStatus, setSelectedStatus] = useState('All');
+    const [wsConnected, setWsConnected] = useState(websocketService.isConnected());
 
-    const refresh = useCallback(async () => {
-        logInteraction('Reservations: refresh started');
-        setLoading(true);
+    const loadData = useCallback(async (isRefresh = false) => {
+        if (isRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
         try {
             const data = await getMyReservations();
@@ -39,8 +45,14 @@ const ReservationsScreen = () => {
             logError('Reservations: refresh failed', err);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
+
+    const refresh = useCallback(() => {
+        logInteraction('Reservations: refresh started');
+        loadData(true);
+    }, [loadData]);
 
     const handleStatusSelect = (status) => {
         logInteraction('Reservations: status filter selected', { status });
@@ -48,12 +60,34 @@ const ReservationsScreen = () => {
     };
 
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        loadData();
+    }, [loadData]);
 
+    // Subscribe to real-time polling updates
+    useEffect(() => {
+        const unsubscribeUpdate = websocketService.onUpdate(() => {
+            loadData(true);
+        });
+
+        const unsubscribeStatus = websocketService.onStatusChange((active) => {
+            setWsConnected(active);
+        });
+
+        return () => {
+            unsubscribeUpdate();
+            unsubscribeStatus();
+        };
+    }, [loadData]);
+
+    // Start/stop Mercure connection based on screen focus
     useFocusEffect(
         useCallback(() => {
             void logScreenView('Reservations');
+            void websocketService.connect();
+
+            return () => {
+                websocketService.disconnect();
+            };
         }, []),
     );
 
@@ -110,6 +144,14 @@ const ReservationsScreen = () => {
 
     return (
         <View style={styles.container}>
+            {/* Live indicator bar */}
+            {wsConnected && (
+                <View style={styles.liveBar}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>Live — connected</Text>
+                </View>
+            )}
+
             <FlatList
                 horizontal
                 data={statuses}
@@ -141,7 +183,7 @@ const ReservationsScreen = () => {
                 contentContainerStyle={styles.listContent}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading}
+                        refreshing={refreshing}
                         onRefresh={refresh}
                         colors={[COLORS.navy]}
                         tintColor={COLORS.navy}
@@ -208,6 +250,28 @@ const styles = StyleSheet.create({
         fontWeight: '400',
         paddingHorizontal: 20,
         paddingBottom: 8,
+    },
+    liveBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        backgroundColor: '#f0fdf4',
+        borderBottomWidth: 1,
+        borderBottomColor: '#bbf7d0',
+    },
+    liveDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+        backgroundColor: '#16a34a',
+    },
+    liveText: {
+        fontSize: 11,
+        color: '#16a34a',
+        fontWeight: '600',
+        letterSpacing: 0.2,
     },
     card: {
         backgroundColor: COLORS.surface,

@@ -16,6 +16,7 @@ export interface Flower {
     supplier?:       string;
     dateReceived?:   string;
     expiryDate?:     string;
+    imageFilename?:  string;
 }
 
 export interface ReservationItem {
@@ -79,7 +80,9 @@ export const getCustomerFlowerDetail = async (id: number): Promise<Flower> => {
 
 export const getFlowerCategories = async (): Promise<string[]> => {
     const response = await apiClient.get(ENDPOINTS.CUSTOMER_CATEGORIES);
-    return response.data.categories || [];
+    // Backend may return an array of strings or objects; normalise to string[]
+    const raw: unknown[] = response.data.categories || [];
+    return raw.map((c) => (typeof c === 'string' ? c : String(c)));
 };
 
 export const getMyReservations = async (): Promise<Reservation[]> => {
@@ -95,4 +98,19 @@ export const getMyReservationDetail = async (id: number): Promise<Reservation> =
 export const getMyNotifications = async (): Promise<Notification[]> => {
     const response = await apiClient.get(ENDPOINTS.CUSTOMER_NOTIFICATIONS);
     return response.data.notifications || [];
+};
+
+export const registerFcmToken = async (token: string): Promise<void> => {
+    await apiClient.post(ENDPOINTS.CUSTOMER_FCM_TOKEN, { token });
+};
+
+export interface MercureTokenResponse {
+    token:   string;
+    hub_url: string;
+    topic:   string;
+}
+
+export const getMercureToken = async (): Promise<MercureTokenResponse> => {
+    const response = await apiClient.get(ENDPOINTS.CUSTOMER_MERCURE_TOKEN);
+    return response.data;
 };

@@ -23,11 +23,15 @@ const HomeScreen = () => {
     const { data: authData } = useSelector((state: any) => state.auth);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
 
-    const refresh = useCallback(async () => {
-        logInteraction('Home screen: refresh started');
-        setLoading(true);
+    const loadData = useCallback(async (isRefresh = false) => {
+        if (isRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
         try {
             const [flowers, reservations] = await Promise.all([
@@ -46,12 +50,18 @@ const HomeScreen = () => {
             logError('Home screen: refresh failed', err);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
+    const refresh = useCallback(() => {
+        logInteraction('Home screen: refresh started');
+        loadData(true);
+    }, [loadData]);
+
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        loadData();
+    }, [loadData]);
 
     useFocusEffect(
         useCallback(() => {
@@ -76,7 +86,7 @@ const HomeScreen = () => {
             contentContainerStyle={styles.contentContainer}
             refreshControl={
                 <RefreshControl
-                    refreshing={loading}
+                    refreshing={refreshing}
                     onRefresh={refresh}
                     colors={[COLORS.navy]}
                     tintColor={COLORS.navy}

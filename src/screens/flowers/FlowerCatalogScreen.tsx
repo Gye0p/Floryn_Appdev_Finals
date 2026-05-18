@@ -27,9 +27,14 @@ const FlowerCatalogScreen = ({ navigation }) => {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [categories, setCategories] = useState(['All']);
 
-    const refresh = useCallback(async () => {
-        logInteraction('Flower catalog: refresh started');
-        setLoading(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const loadData = useCallback(async (isRefresh = false) => {
+        if (isRefresh) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
         try {
             const [flowersData, cats] = await Promise.all([
@@ -47,12 +52,18 @@ const FlowerCatalogScreen = ({ navigation }) => {
             logError('Flower catalog: refresh failed', err);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, []);
 
+    const refresh = useCallback(() => {
+        logInteraction('Flower catalog: refresh started');
+        loadData(true);
+    }, [loadData]);
+
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        loadData();
+    }, [loadData]);
 
     useFocusEffect(
         useCallback(() => {
@@ -160,7 +171,7 @@ const FlowerCatalogScreen = ({ navigation }) => {
                 contentContainerStyle={styles.listContent}
                 refreshControl={
                     <RefreshControl
-                        refreshing={loading}
+                        refreshing={refreshing}
                         onRefresh={refresh}
                         colors={[COLORS.navy]}
                         tintColor={COLORS.navy}

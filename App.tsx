@@ -28,6 +28,8 @@ import {
     isApprovedByAdmin,
 } from './src/utils';
 import { logError } from './src/utils/logger';
+import { notificationService } from './src/services/notificationService';
+import { websocketService } from './src/services/websocketService';
 
 const { store, persistor, runSaga } = configureStore();
 runSaga(rootSaga);
@@ -50,6 +52,9 @@ const App = () => {
 
     useEffect(() => {
         bootstrapFirebase();
+
+        // Initialize FCM push notifications (request permission + register token)
+        void notificationService.init();
 
         const unsubscribeAuth = onAuthStateChanged((firebaseUser) => {
             const syncAuthState = async () => {
@@ -74,10 +79,14 @@ const App = () => {
                             return;
                         }
 
+                        const payload = mapFirebaseUserPayload(firebaseUser);
                         store.dispatch({
                             type: USER_LOGIN_COMPLETED,
-                            payload: mapFirebaseUserPayload(firebaseUser),
+                            payload,
                         });
+
+                        // Connect WebSocket after successful login
+                        void websocketService.connect();
                     } catch (error) {
                         await signOut();
                         store.dispatch({ type: USER_LOGIN_RESET });
@@ -91,6 +100,8 @@ const App = () => {
                     return;
                 }
 
+                // Disconnect WebSocket on logout
+                websocketService.disconnect();
                 store.dispatch({ type: USER_LOGIN_RESET });
             };
 

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
-import { checkApproval } from '../../app/api/authApi';
+import { checkApproval, register as symfonyRegister } from '../../app/api/authApi';
 import COLORS from '../../theme/colors';
 import {
     getApprovalDeniedMessage,
@@ -81,11 +81,24 @@ const RegisterScreen = () => {
             const credential = await signUpWithEmail(email.trim(), password);
             await credential.user.updateProfile({ displayName: name.trim() });
 
-            const approvalUsername = getApprovalIdentifier({
+            // ── Also register in Symfony so the user exists in the backend DB ──
+            const derivedUsername = getApprovalIdentifier({
                 email: credential.user.email,
                 displayName: name.trim(),
                 fallback: email.trim(),
             });
+            try {
+                await symfonyRegister({
+                    username: derivedUsername,
+                    password,
+                    email:    email.trim(),
+                    fullName: name.trim(),
+                });
+            } catch {
+                // Account may already exist in Symfony — continue to approval check
+            }
+
+            const approvalUsername = derivedUsername;
             const approvalResult = await checkApproval(approvalUsername);
 
             if (!isApprovedByAdmin(approvalResult)) {

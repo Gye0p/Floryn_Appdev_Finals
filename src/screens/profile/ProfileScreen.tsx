@@ -24,7 +24,11 @@ const ProfileScreen = () => {
     const [loading, setLoading] = useState(!data?.user);
 
     useEffect(() => {
-        if (!data?.user && data?.token) {
+        if (data?.user) {
+            // User is already in Redux state — no need to fetch
+            setProfile(data.user);
+            setLoading(false);
+        } else if (data?.token) {
             logInteraction('Profile: fetch profile started');
             getMyProfile()
                 .then((nextProfile) => {
@@ -35,6 +39,9 @@ const ProfileScreen = () => {
                     logError('Profile: fetch profile failed', error);
                 })
                 .finally(() => setLoading(false));
+        } else {
+            // No token at all — nothing to fetch
+            setLoading(false);
         }
     }, [data]);
 

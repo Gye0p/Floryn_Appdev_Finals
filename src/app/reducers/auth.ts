@@ -99,7 +99,7 @@ export default function reducer(
 }
 
 // ─── Action Creators ──────────────────────────────────────────────────────────
-export const userLogin = (payload: { email: string; password: string }) => ({
+export const userLogin = (payload: { username: string; password: string }) => ({
     type: USER_LOGIN,
     payload,
 });

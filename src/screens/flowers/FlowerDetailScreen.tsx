@@ -1,10 +1,11 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import StatusBadge from '../../components/StatusBadge';
 import PriceBadge from '../../components/PriceBadge';
 import { formatCurrency } from '../../utils/formatCurrency';
 import COLORS from '../../theme/colors';
+import { UPLOADS_URL } from '../../app/api/config';
 import { logScreenView } from '../../utils/firebase';
 import { logInteraction } from '../../utils/logger';
 
@@ -13,6 +14,9 @@ const isLowStock = (flower) => flower.stockQuantity > 0 && flower.stockQuantity 
 const FlowerDetailScreen = ({ route }) => {
     const { flower } = route.params;
     const lowStock = isLowStock(flower);
+    const imageUri = flower.imageFilename
+        ? `${UPLOADS_URL}/${flower.imageFilename}`
+        : null;
 
     useEffect(() => {
         logInteraction('Flower detail: viewed', {
@@ -29,6 +33,13 @@ const FlowerDetailScreen = ({ route }) => {
 
     return (
         <ScrollView style={styles.container}>
+            {imageUri ? (
+                <Image
+                    source={{ uri: imageUri }}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                />
+            ) : null}
             <View style={styles.hero}>
                 <Text style={styles.heroName}>{flower.name}</Text>
                 <Text style={styles.heroCategory}>{flower.category}</Text>
@@ -95,6 +106,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
+    },
+    heroImage: {
+        width: '100%',
+        height: 220,
     },
     hero: {
         backgroundColor: COLORS.navy,

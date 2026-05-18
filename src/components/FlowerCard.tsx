@@ -1,19 +1,35 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import StatusBadge from './StatusBadge';
 import PriceBadge from './PriceBadge';
 import COLORS from '../theme/colors';
+import { UPLOADS_URL } from '../app/api/config';
 
 const isLowStock = (flower) => flower.stockQuantity > 0 && flower.stockQuantity < 5;
 
 const FlowerCard = ({ flower, onPress }) => {
     const lowStock = isLowStock(flower);
+    const imageUri = flower.imageFilename
+        ? `${UPLOADS_URL}/${flower.imageFilename}`
+        : null;
 
     return (
         <TouchableOpacity
             style={styles.card}
             onPress={() => onPress?.(flower)}
             activeOpacity={0.7}>
+
+            {imageUri ? (
+                <Image
+                    source={{ uri: imageUri }}
+                    style={styles.image}
+                    resizeMode="cover"
+                />
+            ) : (
+                <View style={styles.imagePlaceholder}>
+                    <Text style={styles.placeholderLabel}>{flower.category}</Text>
+                </View>
+            )}
 
             <View style={styles.content}>
                 <View style={styles.headerRow}>
@@ -56,6 +72,27 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.border,
         overflow: 'hidden',
+    },
+    image: {
+        width: '100%',
+        height: 140,
+    },
+    imagePlaceholder: {
+        width: '100%',
+        height: 100,
+        backgroundColor: COLORS.background,
+        justifyContent: 'flex-end',
+        paddingHorizontal: 16,
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    placeholderLabel: {
+        fontSize: 11,
+        color: COLORS.muted,
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
     },
     content: {
         padding: 16,

@@ -20,7 +20,7 @@ import {
     USER_LOGIN_ERROR,
     USER_LOGIN_REQUEST,
 } from '../../app/actions';
-import { checkApproval } from '../../app/api/authApi';
+import { checkApproval, authLogin, authFirebaseLogin } from '../../app/api/authApi';
 import COLORS from '../../theme/colors';
 import {
     getApprovalDeniedMessage,
@@ -28,6 +28,7 @@ import {
     IMG,
     isApprovedByAdmin,
     ROUTES,
+    saveToken,
 } from '../../utils';
 import {
     GoogleSigninButton,
@@ -118,13 +119,31 @@ const LoginScreen = () => {
                 return;
             }
 
-            const authPayload = mapFirebaseUserPayload(credential.user);
+            // ── Get Symfony JWT so all /api/customer/* calls are authorised ──
+            const symfonyResponse = await authLogin({
+                username: approvalUsername,
+                password,
+            });
+            await saveToken(symfonyResponse.token);
 
             await setAnalyticsUserId(credential.user.uid);
             await setCrashlyticsUserId(credential.user.uid);
             await logLogin('email');
 
-            dispatch({ type: USER_LOGIN_COMPLETED, payload: authPayload });
+            dispatch({
+                type: USER_LOGIN_COMPLETED,
+                payload: {
+                    token:       symfonyResponse.token,
+                    firebaseUid: credential.user.uid,
+                    user: {
+                        id:       String(symfonyResponse.user.id),
+                        username: symfonyResponse.user.username,
+                        fullName: symfonyResponse.user.fullName,
+                        email:    symfonyResponse.user.email,
+                        roles:    symfonyResponse.user.roles,
+                    },
+                },
+            });
             logInteraction('Login screen: email sign-in success', {
                 uid: credential.user.uid,
             });
@@ -164,13 +183,29 @@ const LoginScreen = () => {
                 return;
             }
 
-            const authPayload = mapFirebaseUserPayload(credential.user);
+            // ── Exchange Firebase token for Symfony JWT ──────────────────────
+            const firebaseIdToken = await credential.user.getIdToken();
+            const symfonyResponse = await authFirebaseLogin(firebaseIdToken);
+            await saveToken(symfonyResponse.token);
 
             await setAnalyticsUserId(credential.user.uid);
             await setCrashlyticsUserId(credential.user.uid);
             await logLogin('google');
 
-            dispatch({ type: USER_LOGIN_COMPLETED, payload: authPayload });
+            dispatch({
+                type: USER_LOGIN_COMPLETED,
+                payload: {
+                    token:       symfonyResponse.token,
+                    firebaseUid: credential.user.uid,
+                    user: {
+                        id:       String(symfonyResponse.user.id),
+                        username: symfonyResponse.user.username,
+                        fullName: symfonyResponse.user.fullName,
+                        email:    symfonyResponse.user.email,
+                        roles:    symfonyResponse.user.roles,
+                    },
+                },
+            });
             logInteraction('Login screen: Google sign-in success', {
                 uid: credential.user.uid,
             });
